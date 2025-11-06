@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        // !!! A REMPLACER par l'ID de votre Credential Slack !!!
+        // !!! A REMPLACER par l'ID de votre Credential Slack (ex: 'slack-token') !!!
         SLACK_CREDS = 'votre-slack-credential-id' 
-        // !!! A REMPLACER par le nom de votre canal Slack !!!
+        // !!! A REMPLACER par le nom de votre canal Slack (ex: '#devops-notifications') !!!
         SLACK_CHANNEL = '#votre-canal-slack' 
     }
 
@@ -27,23 +27,29 @@ pipeline {
             }
         }
         
-        stage('2. Build (Docker Image)') {
+        stage('2. Build (SIMULATION)') { 
             steps {
-                slackSend(channel: env.SLACK_CHANNEL, color: 'warning', message: "Pipeline *${env.JOB_NAME}* - Étape *Build* en cours.")
+                slackSend(channel: env.SLACK_CHANNEL, color: 'warning', message: "Pipeline *${env.JOB_NAME}* - Étape *Build* en cours (SIMULATION de création d'image Docker).")
                 script {
-                    docker.build("webapp-image:${env.BUILD_NUMBER}")
+                    echo "Démarrage de la simulation de la construction de l'image Docker..."
+                    // Simuler le temps de build
+                    sh 'sleep 5' 
+                    // Simuler la création d'un artefact
+                    sh 'echo "Image webapp-image:${env.BUILD_NUMBER} créée (Simulation)." > build_artefact.txt'
                 }
             }
         }
         
-        stage('3. Deploy') {
+        stage('3. Deploy (SIMULATION)') { 
             steps {
-                slackSend(channel: env.SLACK_CHANNEL, color: 'danger', message: "Pipeline *${env.JOB_NAME}* - Étape *Deploy* en cours.")
+                slackSend(channel: env.SLACK_CHANNEL, color: 'danger', message: "Pipeline *${env.JOB_NAME}* - Étape *Deploy* en cours (SIMULATION de déploiement de conteneur).")
                 script {
-                    // Arrêter/supprimer l'ancien et démarrer le nouveau
-                    sh "docker stop webapp-container || true"
-                    sh "docker rm webapp-container || true"
-                    sh "docker run -d -p 8080:80 --name webapp-container webapp-image:${env.BUILD_NUMBER}"
+                    echo "Démarrage de la simulation de déploiement..."
+                    // Simuler l'arrêt de l'ancien conteneur
+                    sh 'echo "Simulating stopping old container webapp-container..."'
+                    sh 'sleep 3'
+                    // Simuler le démarrage du nouveau conteneur
+                    sh 'echo "Application déployée en environnement de test (Simulation sur port 8080)." '
                 }
             }
         }
