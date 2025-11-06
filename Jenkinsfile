@@ -1,13 +1,13 @@
 pipeline {
     agent any
-
-    environment {
-        // !!! A REMPLACER par l'ID de votre Credential Slack (ex: 'slack-token') !!!
-        SLACK_CREDS = 'votre-slack-credential-id' 
-        // !!! A REMPLACER par le nom de votre canal Slack (ex: '#devops-notifications') !!!
-        SLACK_CHANNEL = '#votre-canal-slack' 
+environment {
+        // ID que vous avez créé dans Gérer les Identifiants
+        SLACK_CREDS = 'slack-token' 
+        
+        // Nom de votre canal Slack réel (ex: '#notifications' ou '#ci-cd')
+        SLACK_CHANNEL = '#votre-canal-slack-reel' 
     }
-
+ 
     // Déclenchement (Poll SCM toutes les 5 min)
     triggers {
         pollSCM('H/5 * * * *') 
