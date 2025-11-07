@@ -1,68 +1,76 @@
 pipeline {
     agent any
-
-    environment {
-        // 1. !!! REMPLACER 'slack-token-ID-reel' par l'ID réel créé dans Jenkins (probablement 'slack-token') !!!
-        SLACK_CREDS = 'slack-token' 
-        
-        // 2. !!! REMPLACER '#votre-canal-reel' par le nom de votre canal Slack (ex: '#ci-cd-junior') !!!
-        SLACK_CHANNEL = '#votre-canal-slack' 
-    }
-
-    // Déclenchement (Sonde le SCM toutes les 5 min)
-    triggers {
-        pollSCM('H/5 * * * *') 
-    }
     
-    // N'exécute le pipeline que si la branche est 'dev'
-    when {
-        branch 'dev'
+    // =======================================================
+    // ⚙️ VOS VARIABLES ET CREDENTIALS
+    // =======================================================
+    environment {
+        // L'ID de vos identifiants Slack créé dans Jenkins
+        SLACK_CREDS = credentials('VOTRE_ID_SLACK') 
+        
+        // Le canal Slack de destination
+        SLACK_CHANNEL = '#votre-canal-slack-reel' 
+        
+        // Votre URL GitHub (déjà configurée)
+        GITHUB_URL = 'https://github.com/juniorieliepouhe/webapp.git'
     }
 
+    // Déclenchement (Poll SCM toutes les 5 min)
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
+    // =======================================================
+    // 🏗️ STAGES DU PIPELINE CI/CD
+    // =======================================================
     stages {
+        
         stage('1. Clone') {
             steps {
-                slackSend(channel: env.SLACK_CHANNEL, color: 'good', message: "🚀 Pipeline *${env.JOB_NAME}* - Étape *Clone* démarrée. Récupération du code sur la branche *dev*.")
-                // Votre URL GitHub
-                git branch: 'dev', url: "https://github.com/junioreliepouhe/webapp.git"
+                slackSend(channel: env.SLACK_CHANNEL, color: 'good', message: "🚀 Pipeline *${env.JOB_NAME}* - Étape *Clone* démarrée...")
+                git branch: 'dev', url: env.GITHUB_URL
             }
         }
         
-        stage('2. Build (SIMULATION)') { 
+        stage('2. Build') { // UTILISATION DE DOCKER RÉEL
             steps {
-                slackSend(channel: env.SLACK_CHANNEL, color: 'warning', message: "🛠️ Pipeline *${env.JOB_NAME}* - Étape *Build* en cours (SIMULATION de création d'image Docker).")
+                slackSend(channel: env.SLACK_CHANNEL, color: 'warning', message: "🛠️ Pipeline *${env.JOB_NAME}* - Étape *Build* en cours : Création de l'image Docker.")
                 script {
-                    echo "Démarrage de la simulation de la construction de l'image Docker..."
-                    // Simuler le temps de build
-                    sh 'sleep 5' 
-                    // Simuler la création d'un artefact
-                    sh 'echo "Image webapp-image:${env.BUILD_NUMBER} créée (Simulation)." > build_artefact.txt'
+                    echo "Démarrage de la construction de l'image Docker..."
+                    // Commande Docker réelle : construit l'image et la tagge avec le numéro de build
+                    // Le "." signifie : cherche le Dockerfile dans le répertoire courant (qui vient d'être cloné)
+                    sh "docker build -t webapp-image:${env.BUILD_NUMBER} ." 
+                    echo "Image webapp-image:${env.BUILD_NUMBER} créée."
                 }
             }
         }
         
-        stage('3. Deploy (SIMULATION)') { 
+        stage('3. Deploy (SIMULATION Avancée)') {
             steps {
-                slackSend(channel: env.SLACK_CHANNEL, color: '#007FFF', message: "🌐 Pipeline *${env.JOB_NAME}* - Étape *Deploy* en cours (SIMULATION de déploiement de conteneur).")
+                slackSend(channel: env.SLACK_CHANNEL, color: '#007FFF', message: "🌐 Pipeline *${env.JOB_NAME}* - Étape *Deploy* en cours : Déploiement du conteneur ${env.BUILD_NUMBER}.")
                 script {
-                    echo "Démarrage de la simulation de déploiement..."
-                    // Simuler l'arrêt de l'ancien conteneur
-                    sh 'echo "Simulating stopping old container webapp-container..."'
-                    sh 'sleep 3'
-                    // Simuler le démarrage du nouveau conteneur
-                    sh 'echo "Application déployée en environnement de test (Simulation sur port 8080)." '
+                    echo "Démarrage de la simulation de déploiement de l'image webapp-image:${env.BUILD_NUMBER}"
+                    // SIMULATION : Arrêter et supprimer l'ancien conteneur s'il existe
+                    sh 'docker stop webapp-container || true' 
+                    sh 'docker rm webapp-container || true' 
+                    // SIMULATION : Démarrer le nouveau conteneur sur le port 8081 avec l'image fraîchement construite
+                    sh "docker run -d --name webapp-container -p 8081:80 webapp-image:${env.BUILD_NUMBER}" 
+                    echo "Application déployée sur http://localhost:8081"
                 }
             }
         }
     }
     
+    // =======================================================
+    // 🔔 ACTIONS POST-BUILD (Toujours notifier, qu'il y ait erreur ou succès)
+    // =======================================================
     post {
         always {
-            // Notification de fin (Succès ou Échec)
+            // Envoyer la notification finale
             slackSend(
-                channel: env.SLACK_CHANNEL, 
-                color: currentBuild.result == 'SUCCESS' ? 'good' : 'danger', 
-                message: "🎉 Pipeline *${env.JOB_NAME}* - Build #${env.BUILD_NUMBER} **${currentBuild.result}** !"
+                channel: env.SLACK_CHANNEL,
+                color: currentBuild.result == 'SUCCESS' ? 'good' : 'danger',
+                message: "*${env.JOB_NAME}* - Build #${env.BUILD_NUMBER} : ${currentBuild.result} ! (Durée: ${currentBuild.durationString})"
             )
         }
     }
